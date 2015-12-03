@@ -14,30 +14,54 @@ const int mqttPort = 1883;
 WiFiClient espWifi;
 PubSubClient mqtt(espWifi);
 
-void setColor(int red, int green, int blue) {
-  // Clamp values
-  red = red > 255 ? 255 : (red < 0 ? 0 : red);
-  green = green > 255 ? 255 : (green < 0 ? 0 : green);
-  blue = blue > 255 ? 255 : (blue < 0 ? 0 : blue);
-
-  // Set color values
-  analogWrite(redPin, red * 4);
-  analogWrite(greenPin, green * 4);
-  analogWrite(bluePin, blue * 4);
+void setRed(int level) {
+  level = level > 255 ? 255 : (level < 0 ? 0 : level);
+  analogWrite(redPin, level * 4);
 }
 
-void handleMqtt(char* topic, byte* binPayload, unsigned int length) {
+void setGreen(int level) {
+  level = level > 255 ? 255 : (level < 0 ? 0 : level);
+  analogWrite(greenPin, level * 4);
+}
+
+void setBlue(int level) {
+  level = level > 255 ? 255 : (level < 0 ? 0 : level);
+  analogWrite(bluePin, level * 4);
+}
+
+void setColor(int red, int green, int blue) {
+  setRed(red);
+  setGreen(green);
+  setBlue(blue);
+}
+
+
+void handleMqtt(char* cstrTopic, byte* binPayload, unsigned int length) {
+  // Create String from topic
+  String topic(cstrTopic);
+  
   // Create C string from payload
   char payload[length + 1];
   memcpy(payload, binPayload, length);
 
-  // Parse string into RGB
-  char *parts[3];
-  parts[0] = strtok(payload, ",");
-  parts[1] = strtok(NULL, ",");
-  parts[2] = strtok(NULL, ",");
+  // Create String from payload
+  String strPayload(payload);
+  
+  if (topic.endsWith("/rgb")) {
+    // Parse string into RGB
+    char *parts[3];
+    parts[0] = strtok(payload, ",");
+    parts[1] = strtok(NULL, ",");
+    parts[2] = strtok(NULL, ",");
 
-  setColor(String(parts[0]).toInt(), String(parts[1]).toInt(), String(parts[2]).toInt());
+    setColor(String(parts[0]).toInt(), String(parts[1]).toInt(), String(parts[2]).toInt());
+  } else if (topic.endsWith("/r")) {
+    setRed(strPayload.toInt());
+  } else if (topic.endsWith("/g")) {
+    setGreen(strPayload.toInt());
+  } else if (topic.endsWith("/b")) {
+    setBlue(strPayload.toInt());
+  }
 }
 
 void setup() {  
@@ -64,8 +88,8 @@ void setup() {
   mqtt.setCallback(handleMqtt);
   mqtt.connect("kerstboom");
 
-  // Subscribe and publish
-  mqtt.subscribe("kerstboom/rgb");
+  // Subscribe to topics
+  mqtt.subscribe("kerstboom/+");
 }
 
 void loop() {
