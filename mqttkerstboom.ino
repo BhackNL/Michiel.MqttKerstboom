@@ -48,7 +48,7 @@ void setColor(int red, int green, int blue) {
 /*
  * STA mode
  */
-void handleMqtt(char* cstrTopic, byte* binPayload, unsigned int length) {
+void handleMqtt(char *cstrTopic, byte *binPayload, unsigned int length) {
   // Create String from topic
   String topic(cstrTopic);
   
