@@ -6,14 +6,10 @@
 int redPin = 14;
 int greenPin = 12;
 int bluePin = 13;
-int apPin = 5;
+int apPin = 4;
 
 const char *mqttHost = "10.0.10.103";
 const int mqttPort = 1883;
-
-// Default WiFi client settings
-String ssidString = "Bhack";
-String keyString = "!LhackerHacken!";
 
 bool apMode = false;
 
@@ -76,21 +72,24 @@ void handleMqtt(char *cstrTopic, byte *binPayload, unsigned int length) {
   }
 }
 
-void setupSta() {
-  // Get SSID and password  
-  if (SPIFFS.exists("/ssid")) {
-    File ssidFile = SPIFFS.open("/ssid", "r");
-    ssidString = ssidFile.readString();
-    ssidFile.close();
-
-    File keyFile = SPIFFS.open("/key", "r");
-    keyString = keyFile.readString();
-    keyFile.close();
+void setupSta() {  
+  if (!SPIFFS.exists("/ssid")) {
+    // We have no WiFi settings yet
+    setColor(255, 0, 255);
+    return;
   }
+  
+  File ssidFile = SPIFFS.open("/ssid", "r");
+  String ssid = ssidFile.readString();
+  ssidFile.close();
+
+  File keyFile = SPIFFS.open("/key", "r");
+  String key = keyFile.readString();
+  keyFile.close();
   
   // Setup WiFi
   WiFi.mode(WIFI_STA);
-  WiFi.begin(ssidString.c_str(), keyString.c_str());
+  WiFi.begin(ssid.c_str(), key.c_str());
 
   while (WiFi.status() != WL_CONNECTED)
     delay(250);
@@ -112,7 +111,7 @@ void setupSta() {
  */
 void saveWifiCredentials(String ssid, String key) {
   SPIFFS.format();
-
+  
   File ssidFile = SPIFFS.open("/ssid", "w");
   ssidFile.print(ssid);
   ssidFile.flush();
@@ -130,12 +129,12 @@ void handleGet() {
     return;
   }
 
+  http.send(200);
+
   String ssid = http.arg("ssid");
   String key = http.arg("key");
 
   saveWifiCredentials(ssid, key);
-  http.send(200);
-
   ESP.restart();
 }
 
@@ -161,7 +160,6 @@ void setup() {
   pinMode(greenPin, OUTPUT);
   pinMode(bluePin, OUTPUT);
   pinMode(apPin, INPUT_PULLUP);
-  digitalWrite(apPin, HIGH);
 
   // Initial color red
   setColor(255, 0, 0);
